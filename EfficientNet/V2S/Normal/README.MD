@@ -7,7 +7,6 @@ Info About Model
 |version: |	11 |
 |---------|----|
 |Validation Accuracy:|	96.74|
-|---------|----|
 |Test Accuracy:	|96.89|
 
 "version" corresponds to kaggle version of notebook run.
