@@ -22,7 +22,7 @@ def ChannelAverageFlatten(x, pool_size='infer', layer_num=1):
         
         n_head = x.shape[-1] // pool_size
     
-    x = layers.Reshape((x.shape[1],x.shape[2],n_head, -1))(x)
-    _channel_average = layers.Lambda(lambda z: keras.backend.mean(z, axis=-1))(x)
-    _channel_average_flatten = layers.Flatten()(_channel_average)
+    x = layers.Reshape((x.shape[1],x.shape[2],n_head, -1), name="Reshape-ChannelAverageFlattenPooling-L{}".format(layer_num))(x)
+    _channel_average = layers.Lambda(lambda z: keras.backend.mean(z, axis=-1), name="ChannelAverage-ChannelAverageFlattenPooling-L{}".format(layer_num))(x)
+    _channel_average_flatten = layers.Flatten(name="Flatten-ChannelAverageFlattenPooling-L{}".format(layer_num))(_channel_average)
     return _channel_average_flatten
