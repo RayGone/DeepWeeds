@@ -4,7 +4,7 @@ import tensorflow.keras.layers as layers
 
 
 def AverageOfMaximums(x, max_pool_size=2, layer_num=1):
-    _max = layers.MaxPooling2D(pool_size=max_pool_size, name="Maximums_L{}".format(layer_num))(x)
+    _max = layers.MaxPooling2D(pool_size=max_pool_size,padding='same', name="Maximums_L{}".format(layer_num))(x)
     _avg = layers.GlobalAveragePooling2D(pool_size=max_pool_size, name="Average_of_Maximums_L{}".format(layer_num))(_max)
     return _avg
 
