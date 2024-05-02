@@ -1,2 +1,3 @@
 # Decided to not upload model to github
 *.keras
+*test*
