@@ -27,10 +27,11 @@ def ChannelAverageFlatten(x, pool_size='infer', layer_num=1):
         _channel_average = tf.math.reduce_max(x, axis=-1, name="ChannelAverage-ChannelAverageFlattenPooling-L{}".format(layer_num)) 
     except:
         _channel_average = layers.Lambda(lambda z: keras.backend.mean(z, axis=-1), name="ChannelAverage-ChannelAverageFlattenPooling-L{}".format(layer_num))(x)
-    _channel_average_flatten = layers.Flatten(name="Flatten-ChannelAverageFlattenPooling-L{}".format(layer_num))(_channel_average)
-    return _channel_average_flatten
+    
+    _channel_average = layers.Reshape((_channel_average.shape[1], _channel_average.shape[2], -1))(_channel_average)
+    return _channel_average
 
-def ChannelMaxFlatten(x, pool_size='infer', layer_num=1):
+def ChannelMaxPooling(x, pool_size='infer', layer_num=1):
     """
       pool_size If not "infer", then the final output size will be {h*w*(c/pool_size)}., where "c" is feature size.
       "infer" works only if {c%(h*w) == 0}; if true, then the final output size is equal to "c"
@@ -53,63 +54,51 @@ def ChannelMaxFlatten(x, pool_size='infer', layer_num=1):
         _channel_max = tf.math.reduce_max(x, axis=-1, name="ChannelMax-ChannelMaxFlattenPooling-L{}".format(layer_num))
     except:
         _channel_max = layers.Lambda(lambda z: keras.backend.mean(z, axis=-1), name="ChannelAverage-ChannelAverageFlattenPooling-L{}".format(layer_num))(x)
-    _channel_max_flatten = layers.Flatten(name="Flatten-ChannelMaxFlattenPooling-L{}".format(layer_num))(_channel_max)
-    return _channel_max_flatten
+        
+    _channel_max = layers.Reshape((_channel_max.shape[1], _channel_max.shape[2], -1))(_channel_max)
+    return _channel_max
 
 class SpatialMaxPooling2D(tf.keras.layers.Layer):
-  def __init__(self,pool_size=2,stride=None,padding='valid',**kwargs):
-    super(SpatialMaxPooling2D,self).__init__(**kwargs)
-    self.pool_size = pool_size
-    self.stride = stride
-    self.padding = padding
-    if stride is None:
-      self.stride = self.pool_size
+    def __init__(self,pool_size=2,stride=None,padding='valid',data_format='channels_last', **kwargs):
+        super(SpatialMaxPooling2D,self).__init__(**kwargs)
+        self.pool_size = pool_size
+        self.stride = stride
+        self.padding = padding
+        if stride is None:
+            self.stride = self.pool_size
 
-    self.max = tf.keras.layers.MaxPool1D(self.pool_size, self.stride, padding=self.padding)
-    self.permute_forward = tf.keras.layers.Permute((3,1,2))
-    self.permute_backward = tf.keras.layers.Permute((2,3,1))
+        self.data_format = 'channels_last' if data_format == 'channels_first' else 'channels_first'
+        self.max = tf.keras.layers.MaxPool1D(self.pool_size, self.stride, padding=self.padding, data_format=self.data_format)
 
-  def build(self,input_shape):
-    print(input_shape)
-    self.reshape_forward = tf.keras.layers.Reshape((input_shape[-1],-1))
-    self.reshape_backward= tf.keras.layers.Reshape((-1, input_shape[1], input_shape[2]))
+    def build(self,input_shape):
+        self.reshape_forward = tf.keras.layers.Reshape((-1,input_shape[-1]))
+        self.reshape_backward= tf.keras.layers.Reshape((input_shape[1], input_shape[2], -1))
 
-  def call(self,x, training):
-    x = self.permute_forward(x)
-    x = self.reshape_forward(x)
-    print(x)
-    x = self.max(x)
-    print(x)
-    x = self.reshape_backward(x)
-    print(x)
-    x = self.permute_backward(x)
-    return x
+    def call(self,x):
+        x = self.reshape_forward(x)
+        x = self.max(x)
+        x = self.reshape_backward(x)
+        return x
 
 class SpatialAveragePooling2D(tf.keras.layers.Layer):
-  def __init__(self,pool_size=2,stride=None,padding='valid',**kwargs):
-    super(SpatialAveragePooling2D,self).__init__(**kwargs)
-    self.pool_size = pool_size
-    self.stride = stride
-    self.padding = padding
-    if stride is None:
-      self.stride = self.pool_size
+    def __init__(self,pool_size=2,stride=None,padding='valid',data_format='channels_last', **kwargs):
+        super(SpatialAveragePooling2D,self).__init__(**kwargs)
+        self.pool_size = pool_size
+        self.stride = stride
+        self.padding = padding
+        if stride is None:
+            self.stride = self.pool_size
 
-    self.max = tf.keras.layers.AveragePooling1D(self.pool_size, self.stride, padding=self.padding)
-    self.permute_forward = tf.keras.layers.Permute((3,1,2))
-    self.permute_backward = tf.keras.layers.Permute((2,3,1))
+        self.data_format = 'channels_last' if data_format == 'channels_first' else 'channels_first'
+        self.avg = tf.keras.layers.AveragePooling1D(self.pool_size, self.stride, padding=self.padding, data_format=self.data_format)
 
-  def build(self,input_shape):
-    print(input_shape)
-    self.reshape_forward = tf.keras.layers.Reshape((input_shape[-1],-1))
-    self.reshape_backward= tf.keras.layers.Reshape((-1, input_shape[1], input_shape[2]))
+    def build(self,input_shape):
+        self.reshape_forward = tf.keras.layers.Reshape((-1,input_shape[-1]))
+        self.reshape_backward= tf.keras.layers.Reshape((input_shape[1], input_shape[2], -1))
 
-  def call(self,x, training):
-    x = self.permute_forward(x)
-    x = self.reshape_forward(x)
-    
-    x = self.max(x)
-    
-    x = self.reshape_backward(x)
-    x = self.permute_backward(x)
-    return x
+    def call(self,x):
+        x = self.reshape_forward(x)
+        x = self.avg(x)
+        x = self.reshape_backward(x)
+        return x
 
