@@ -1,7 +1,7 @@
 import tensorflow as tf
 import tensorflow.keras as keras
 import tensorflow.keras.layers as layers
-
+import tensorflow.keras.backend as K
 
 def AverageOfMaximums(x, max_pool_size=2, layer_num=1):
     _max = layers.MaxPooling2D(pool_size=max_pool_size,padding='same', name="Maximums_L{}".format(layer_num))(x)
@@ -58,6 +58,7 @@ def ChannelMaxPooling(x, pool_size='infer', layer_num=1):
     _channel_max = layers.Reshape((_channel_max.shape[1], _channel_max.shape[2], -1))(_channel_max)
     return _channel_max
 
+
 class SpatialMaxPooling2D(tf.keras.layers.Layer):
     def __init__(self,pool_size=2,stride=None,padding='valid',data_format='channels_last', **kwargs):
         super(SpatialMaxPooling2D,self).__init__(**kwargs)
@@ -67,17 +68,21 @@ class SpatialMaxPooling2D(tf.keras.layers.Layer):
         if stride is None:
             self.stride = self.pool_size
 
-        self.data_format = 'channels_last' if data_format == 'channels_first' else 'channels_first'
+        self.in_data_format = data_format
+        self.data_format = 'channels_last' if self.in_data_format == 'channels_first' else 'channels_first'
         self.max = tf.keras.layers.MaxPool1D(self.pool_size, self.stride, padding=self.padding, data_format=self.data_format)
 
-    def build(self,input_shape):
-        self.reshape_forward = tf.keras.layers.Reshape((-1,input_shape[-1]))
-        self.reshape_backward= tf.keras.layers.Reshape((input_shape[1], input_shape[2], -1))
-
     def call(self,x):
-        x = self.reshape_forward(x)
-        x = self.max(x)
-        x = self.reshape_backward(x)
+        input_shape = x.shape
+        if self.data_format == 'channels_first':
+            x = tf.keras.ops.reshape(x, (input_shape[0], -1,input_shape[-1]))
+            x = self.max(x)
+            x = tf.keras.ops.reshape(x, (input_shape[0], input_shape[1], input_shape[2], -1))
+        else:
+            x = tf.keras.ops.reshape(x, (input_shape[0], input_shape[-1], -1))
+            x = self.max(x)
+            x = tf.keras.ops.reshape(x, (input_shape[0], -1, input_shape[1], input_shape[2]))
+
         return x
 
 class SpatialAveragePooling2D(tf.keras.layers.Layer):
@@ -92,13 +97,110 @@ class SpatialAveragePooling2D(tf.keras.layers.Layer):
         self.data_format = 'channels_last' if data_format == 'channels_first' else 'channels_first'
         self.avg = tf.keras.layers.AveragePooling1D(self.pool_size, self.stride, padding=self.padding, data_format=self.data_format)
 
-    def build(self,input_shape):
-        self.reshape_forward = tf.keras.layers.Reshape((-1,input_shape[-1]))
-        self.reshape_backward= tf.keras.layers.Reshape((input_shape[1], input_shape[2], -1))
-
     def call(self,x):
-        x = self.reshape_forward(x)
-        x = self.avg(x)
-        x = self.reshape_backward(x)
+        input_shape = x.shape
+        if self.data_format == 'channels_first':
+            x = tf.keras.ops.reshape(x, (input_shape[0], -1,input_shape[-1]))
+            x = self.avg(x)
+            x = tf.keras.ops.reshape(x, (input_shape[0], input_shape[1], input_shape[2], -1))
+        else:
+            x = tf.keras.ops.reshape(x, (input_shape[0], input_shape[-1], -1))
+            x = self.avg(x)
+            x = tf.keras.ops.reshape(x, (input_shape[0], -1, input_shape[1], input_shape[2]))
+
         return x
 
+
+
+## Works with Tensorflow 2.16
+"""ReLUQ: Quantile ReLU Activation Function
+Instead of using a fixed max-value, this activation function uses the quantile value of the input tensor.
+"""
+class ReluQ(tf.keras.layers.Layer):
+    def __init__(self, quantile=0.75, **kwargs):
+        super(ReluQ, self).__init__(**kwargs)
+        
+        self.quantile = quantile
+        self.relu = tf.keras.layers.ReLU(None, 0.3) ## LeakyReLU
+        
+        self.one = tf.constant(1.0)
+        self.quantile_value = None
+        
+    def call(self, x, training=False):
+        self.quantile_value = tf.keras.ops.min(tf.keras.ops.quantile(x, self.quantile, axis=-1))
+        x = self.relu(x)
+        x = tf.cond(self.quantile_value < self.one, lambda: x, lambda: tf.keras.ops.minimum(self.quantile_value, x))
+        
+        return x
+
+def TwoKernelSpatialAttention(input_feature, kernel_size=7, layer_num=0):
+    if K.image_data_format() == "channels_first":
+        channel = input_feature.shape[1]
+        cbam_feature = layers.Permute((2,3,1))(input_feature)
+    else:
+        channel = input_feature.shape[-1]
+        cbam_feature = input_feature
+    
+    channel_avg = SpatialAveragePooling2D(cbam_feature, layer_num = layer_num)
+    
+    channel_max = SpatialMaxPooling2D(cbam_feature, layer_num = layer_num)
+    
+    #print(global_max_pool, channel_max)
+    
+    concat = layers.Concatenate(axis=3)([channel_avg, channel_max])
+    
+    cbam_feature_x = layers.Conv2D(filters = 1,
+                    kernel_size=kernel_size,
+                    strides=1,
+                    padding='same',
+                    activation='sigmoid',
+                    kernel_initializer='he_normal',
+                    use_bias=False)(concat)	
+    
+    
+    cbam_feature_3 = layers.Conv2D(filters = 1,
+                    kernel_size=3,
+                    strides=1,
+                    padding='same',
+                    activation='sigmoid',
+                    kernel_initializer='he_normal',
+                    use_bias=False)(concat)	
+
+    if K.image_data_format() == "channels_first":
+        cbam_feature_x = layers.Permute((3, 1, 2))(cbam_feature_x)
+        cbam_feature_3 = layers.Permute((3, 1, 2))(cbam_feature_3)
+
+    cbam_feature = layers.Add()([cbam_feature_x, cbam_feature_3])
+
+    cbam_feature =  layers.Multiply([input_feature, cbam_feature])
+    return cbam_feature
+
+import math
+### MFSA
+def MultiFilterSpatialAttention(input_feature, kernel_size=7, num_pooled_channel=4, num_filters=8, layer_num = 0):
+    in_shape = input_feature.shape
+
+    stride = int(math.ceil(in_shape[-1] / num_pooled_channel))
+    pool_size = (stride * 2)
+
+    channel_avg = SpatialAveragePooling2D(pool_size, stride, padding='same', name='MFSA_SAP_L{}'.format(layer_num))(input_feature)
+    channel_max = SpatialMaxPooling2D(pool_size, stride, padding='same' , name='MFSA_SMP_L{}'.format(layer_num))(input_feature)
+
+    concat = layers.Concatenate(axis=3, name='MFSA_ConcatChannels_L{}'.format(layer_num))([channel_avg, channel_max])
+
+    sa_feature_x = layers.Conv2D(filters = num_filters,
+                    kernel_size=kernel_size,
+                    strides=1,
+                    padding='same',
+                    activation='sigmoid',
+                    kernel_initializer='he_normal',
+                    use_bias=False,
+                    name="MFSA_Conv_L{}".format(layer_num))(concat)	
+
+    sa_shape = sa_feature_x.shape
+
+    sa_feature_x =  layers.Multiply([layers.Reshape((in_shape[1],in_shape[2],sa_shape[-1],-1), name="MFSA_InputForwardReshape_L{}".format(layer_num))(input_feature),
+                              layers.Reshape((sa_shape[1],sa_shape[2],sa_shape[3],1), name="MFSA_AttentionForwardReshape_L{}".format(layer_num))(sa_feature_x)])
+    
+    sa_feature_x = layers.Reshape((in_shape[1], in_shape[2], -1), name="MFSA_OutBackwardReshape_L{}".format(layer_num))(sa_feature_x)
+    return sa_feature_x
