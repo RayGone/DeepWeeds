@@ -133,47 +133,38 @@ class ReluQ(tf.keras.layers.Layer):
         
         return x
 
-def TwoKernelSpatialAttention(input_feature, kernel_size=7, layer_num=0):
-    if K.image_data_format() == "channels_first":
-        channel = input_feature.shape[1]
-        cbam_feature = layers.Permute((2,3,1))(input_feature)
-    else:
-        channel = input_feature.shape[-1]
-        cbam_feature = input_feature
+### MKSA
+def MultiKernelSpatialAttention(input_feature, kernels=[1,3,5,7], layer_num=0):
+    in_size = input_feature.shape[1]
+
+    channel = input_feature.shape[-1]
+    x = input_feature
+
+    pool_size = channel // 8
     
-    channel_avg = SpatialAveragePooling2D(cbam_feature, layer_num = layer_num)
-    
-    channel_max = SpatialMaxPooling2D(cbam_feature, layer_num = layer_num)
-    
-    #print(global_max_pool, channel_max)
+    channel_avg = SpatialAveragePooling2D(pool_size, padding='same')(x)
+    channel_max = SpatialMaxPooling2D(pool_size, padding='same')(x)
     
     concat = layers.Concatenate(axis=3)([channel_avg, channel_max])
     
-    cbam_feature_x = layers.Conv2D(filters = 1,
-                    kernel_size=kernel_size,
-                    strides=1,
-                    padding='same',
-                    activation='sigmoid',
-                    kernel_initializer='he_normal',
-                    use_bias=False)(concat)	
-    
-    
-    cbam_feature_3 = layers.Conv2D(filters = 1,
-                    kernel_size=3,
-                    strides=1,
-                    padding='same',
-                    activation='sigmoid',
-                    kernel_initializer='he_normal',
-                    use_bias=False)(concat)	
+    attentions = []
 
-    if K.image_data_format() == "channels_first":
-        cbam_feature_x = layers.Permute((3, 1, 2))(cbam_feature_x)
-        cbam_feature_3 = layers.Permute((3, 1, 2))(cbam_feature_3)
+    for kernel in kernels:
+        attentions.append(
+            layers.Conv2D(filters = 1,
+                kernel_size=kernel,
+                strides=1,
+                padding='same',
+                activation='sigmoid',
+                kernel_initializer='he_normal',
+                use_bias=False)(concat)
+            )
+      
+    attentions = layers.Average()(attentions)
 
-    cbam_feature = layers.Add()([cbam_feature_x, cbam_feature_3])
+    x =  layers.Multiply()([input_feature, attentions])
+    return x
 
-    cbam_feature =  layers.Multiply([input_feature, cbam_feature])
-    return cbam_feature
 
 import math
 ### MFSA
@@ -204,3 +195,36 @@ def MultiFilterSpatialAttention(input_feature, kernel_size=7, num_pooled_channel
     
     sa_feature_x = layers.Reshape((in_shape[1], in_shape[2], -1), name="MFSA_OutBackwardReshape_L{}".format(layer_num))(sa_feature_x)
     return sa_feature_x
+
+
+### Modified Spatial Attention
+def ModifiedSpatialAttention(input_feature, kernel_size=5, num_pooled_channel=8, layer_num = 0):
+    in_shape = input_feature.shape
+    #pool_size =  in_shape[-1] // num_pooled_channel
+
+    channel_avg = layers.Dense(num_pooled_channel, name="MSA_Feature_1L{}".format(layer_num))(input_feature)
+    channel_max = layers.Dense(num_pooled_channel , name='MSA_Feature_2L{}'.format(layer_num))(input_feature)
+
+
+    if K.image_data_format() == "channels_first":
+        channel = input_feature.shape[1]
+        cbam_feature = Permute((2,3,1))(input_feature)
+    else:
+        channel = input_feature.shape[-1]
+        cbam_feature = input_feature
+
+    concat = Concatenate(axis=3)([channel_avg, channel_max])
+
+    cbam_feature = Conv2D(filters = 1,
+                    kernel_size=kernel_size,
+                    strides=1,
+                    padding='same',
+                    activation='sigmoid',
+                    kernel_initializer='he_normal',
+                    use_bias=False)(concat)
+    assert cbam_feature.shape[-1] == 1
+
+    if K.image_data_format() == "channels_first":
+        cbam_feature = Permute((3, 1, 2))(cbam_feature)
+
+    return multiply([input_feature, cbam_feature])
