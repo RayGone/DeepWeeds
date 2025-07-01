@@ -1,3 +1,11 @@
+These Experiments are run in [Kaggle Notebook](https://www.kaggle.com/code/reganmaharjan/deepweeds-mobilenetv3small). The experiment and Cross Validation correspond to the notebook version names.
+
+The Kaggle Notebook uses the version from 2024-01 and the environment uses TF version 2.15.0.
+
+*To be noted is that when running these experiment codes (both [Experiment1](./Experiment1/) and [Experiment2](./Experiment2/)) in Colab, which uses TF version 2.18.0 (2025-07-01), both validation and test results barely crosses 90% accuracy.*
+
+**The initial experiment was conducted in [[Experiment3-GA](../Experiment3-GA/)].** However, due to some hyperparameters used and Kaggle Notebook version the results in [Experiment3-GA] are quite poor than what is observed in this experiment. This discrepency can be observed in the [Experiment3-GA/Xperiment1.1](../Experiment3-GA/Xperiment1.1.ipynb), which contains same code as [Experiment3-GA/Experiment1.1](../Experiment3-GA/Experiment1.1.ipynb) but run in different Kaggle Notebook version.
+
 # Experiment 1
 ### 📌 Overview
 In this experiment we only use the base part of MobilenetV3-Small model and omit Fully-Connected Layer for DeepWeeds Classification task.
