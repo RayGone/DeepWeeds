@@ -24,7 +24,6 @@ In this experiment we only use the base part of MobilenetV3-Small model and omit
 | Fold 5 | 93.74 | 92.64 | 93.13 | 94.66 |
 | **Average** | **93.14** | **92.41** | **92.73** | **94.47** |
 ----
-----
 **Test Set Result**
 
 |    #   | Precision | Recall | F1-Score| Accuracy |
@@ -45,45 +44,38 @@ In this experiment we use both base and Fully-Connected Layer of MobilenetV3-Sma
 *Results from Kaggle version Exp#2/2*.
 > Reported *Precision*, *Recall*, and *F1-Score* are macro averages.
 
-**Validation Set Result**
+**<u>Validation Set Result</u>**
 
 |    #   | Precision | Recall | F1-Score| Accuracy |
 |--------|-----------|--------|---------|----------|
 | Fold 1 | 94.12 | 92.18 | 93.13 | 95.46 |
-| Fold 2 | 93.74 | 93.89 | 93.74 | 95.26 |
-| **Fold 3** | **95.71** | **94.69** | **95.16** | **96.20** |
+| Fold 2 | 93.96 | 93.29 | 93.58 | 95.14 |
+| **Fold 3** | **95.39** | **94.55** | **94.94** | **96.03** |
 | Fold 4 | 94.75 | 93.67 | 94.16 | 95.43 |
-| Fold 5 | 94.22 | 93.80 | 93.96 | 95.43 |
-| **Average** | **94.51** | **93.64** | **94.03** | **95.55** |
+| Fold 5 | 94.51 | 93.94 | 94.18 | 95.52 |
+| **Average** | **94.54** | **93.52** | **94.00** | **95.51** |
 ---- 
-----
-**Test Set Result**
+**<u>Test Set Result</u>**
 
 |    #   | Precision | Recall | F1-Score| Accuracy |
 |--------|-----------|--------|---------|----------|
 | Fold 1 | 93.89 | 93.86 | 93.84 | 95.41 |
-| Fold 2 | 93.92 | 93.35 | 93.59 | 95.23 |
-| **Fold 3** | **94.65** | **94.00** | **94.31** | **95.57** |
+| Fold 2 | 94.39 | 93.23 | 93.77 | 95.29 |
+| **Fold 3** | **94.86** | **93.97** | **94.39** | **95.66** |
 | Fold 4 | 93.85 | 93.58 | 93.67 | 95.28 |
-| Fold 5 | 94.13 | 93.54 | 93.76 | 95.08 |
-| **Average** | **94.09** | **93.66** | **93.83** | **95.31** |
+| Fold 5 | 94.39 | 93.51 | 93.89 | 95.19 |
+| **Average** | **94.27** | **93.63** | **93.91** | **95.36** |
 ----
 
-
-
-|# | precision|    recall  |f1-score |
+|#Weeds | precision|    recall  |f1-score |
 |----|-----|-----|-----|
-|Chinee apple  |  0.93627  | 0.84889  | 0.89044    |
-Lantana  |  0.94836 |  0.94836 |  0.94836    |
-Parkinsonia  |  0.97561   |0.97087   |0.97324   |
-Parthenium   | 0.93868 |  0.97549 |  0.95673     |
-Prickly acacia |   0.94762  | 0.93868  | 0.94313 |
-Rubber vine  |  0.96569   |0.97525 |  0.97044    |
-Siam weed |   0.96774 |  0.97674 |  0.97222   |
-Snake weed |   0.86792 |  0.90640 |  0.88675   |
-Negative  |  0.97370 |  0.97530 |  0.97450  |   
-| | | | | |
-accuracy  |      |          |      94.89 |
-macro avg   | 93.85  | 92.82  |  93.29 |   
-weighted avg  |  0.95929 |  0.95917 |  0.95904   |  
+| Chinee apple  | 92.17 |  85.25 | 88.53 |
+| Lantana  | 95.22 | 93.12 | 94.14 |
+| Parkinsonia  | 95.45 | 97.76 | 96.78 |
+| Parthenium   | 94.12 | 96.38 | 95.22 |
+| Prickly acacia |  93.59 | 93.12 | 93.35 |
+| Rubber vine  |  95.72  | 94.94 | 95.32 |
+| Siam weed | 96.46 | 95.71 | 96.07 |
+| Snake weed | 88.73 | 88.87 | 88.74 |
+| Negative  | 96.64 | 97.48 |  97.06  |    
 ----
