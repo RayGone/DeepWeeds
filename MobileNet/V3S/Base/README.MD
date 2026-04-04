@@ -37,6 +37,13 @@ In this experiment we only use the base part of MobilenetV3-Small model and omit
 ----
 ----
 
+## Experiment 1.1
+*With Kernel Regularization*
+
+>**Per Fold Test Accuracy: [95.72, 95.69, 96.26, 95.71, 95.68] = 95.81**
+
+<br>
+
 # Experiment 2
 ### 📌 Overview
 In this experiment we use both base and Fully-Connected Layer of MobilenetV3-Small model *(i.e. whole MobilenetV3-Small Model)* for DeepWeeds Classification task. 
@@ -79,3 +86,6 @@ In this experiment we use both base and Fully-Connected Layer of MobilenetV3-Sma
 | Snake weed | 88.73 | 88.87 | 88.74 |
 | Negative  | 96.64 | 97.48 |  97.06  |    
 ----
+
+Exp#2/3
+Acc: [95.41, 95.37, 95.08, 95.74, 95.42]

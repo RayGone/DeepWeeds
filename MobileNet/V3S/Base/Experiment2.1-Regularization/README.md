@@ -1,0 +1,1 @@
+Experiment with Activity Regularization after FCLayer.
